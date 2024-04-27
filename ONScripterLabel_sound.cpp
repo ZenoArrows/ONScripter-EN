@@ -367,7 +367,11 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
             }
         }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+        mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer + id3v2_size, length - id3v2_size ), NULL, 0, 0 );
+#else
         mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer + id3v2_size, length - id3v2_size ), NULL, 0 );
+#endif
 
         if (playMP3() == 0){
             music_buffer = buffer;
@@ -409,11 +413,13 @@ void ONScripterLabel::playCDAudio()
     if (!audio_open_flag) return;
 
     if ( cdaudio_flag ){
+#if !SDL_VERSION_ATLEAST(2,0,0)
         if ( cdrom_info ){
             int length = cdrom_info->track[current_cd_track - 1].length / 75;
             SDL_CDPlayTracks( cdrom_info, current_cd_track - 1, 0, 1, 0 );
             timer_cdaudio_id = SDL_AddTimer( length * 1000, cdaudioCallback, NULL );
         }
+#endif
     }
     else{
         //if CD audio is not available, search the "cd" subfolder
@@ -673,6 +679,10 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
     movie_buffer = NULL;
     if (surround_rects) delete[] surround_rects;
     surround_rects = NULL;
+#if SDL_VERSION_ATLEAST(2,0,0)
+    if (movie_texture) SDL_DestroyTexture( movie_texture );
+    movie_texture = NULL;
+#endif
 
     unsigned long length = script_h.cBR->getFileLength( filename );
 
@@ -696,7 +706,11 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
         return 0;
     }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SMPEG *mpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( movie_buffer, length ), NULL, 0, 0 );
+#else
     SMPEG *mpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( movie_buffer, length ), NULL, 0 );
+#endif
     char *errstr = SMPEG_error( mpeg_sample );
     if (errstr){
         
@@ -740,6 +754,32 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
             different_spec = false;
         }
         SMPEG_enablevideo( mpeg_sample, 1 );
+#if SDL_VERSION_ATLEAST(2,0,0)
+        movie_texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, info.width, info.height );
+        SMPEG_setdisplay( mpeg_sample, displayCallback, this, NULL );
+        if (use_pos) {
+            movie_rect.w = width;
+            movie_rect.h = height;
+            movie_rect.x = xpos;
+            movie_rect.y = ypos;
+        }
+        else if (nomovieupscale_flag && (info.width < screen_width) &&
+                 (info.height < screen_height)) {
+            //"no-movie-upscale" set, so use its native
+            //width/height & center within the screen
+            movie_rect.w = info.width;
+            movie_rect.h = info.height;
+            movie_rect.x = (screen_width - info.width) / 2;
+            movie_rect.y = (screen_height - info.height) / 2;
+        }
+        else
+        {
+            movie_rect.w = screen_width;
+            movie_rect.h = screen_height;
+            movie_rect.x = 0;
+            movie_rect.y = 0;
+        }
+#else
         SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
         if (use_pos) {
             SMPEG_scaleXY( mpeg_sample, width, height );
@@ -753,6 +793,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
             SMPEG_move( mpeg_sample, (screen_width - info.width) / 2,
                        (screen_height - info.height) / 2 );
         }
+#endif
 #ifdef RCA_SCALE
         //center the movie on the screen, using standard aspect ratio
         else if ( (scr_stretch_x > 1.0) || (scr_stretch_y > 1.0) ) {
@@ -833,6 +874,9 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
                         done_flag = movie_click_flag;
                     else if ( ((SDL_KeyboardEvent *)&event)->keysym.sym == SDLK_f ){
 #ifndef PSP
+#if SDL_VERSION_ATLEAST(2,0,0)
+                        SDL_SetWindowFullscreen( window, fullscreen_mode ? SDL_WINDOW_FULLSCREEN : 0 );
+#else
                         if ( !SDL_WM_ToggleFullScreen( screen_surface ) ){
                             SMPEG_pause( mpeg_sample );
                             SDL_FreeSurface(screen_surface);
@@ -843,6 +887,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
                             SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
                             SMPEG_play( mpeg_sample );
                         }
+#endif
 #endif
                         fullscreen_mode = !fullscreen_mode;
                     }
@@ -896,7 +941,11 @@ int ONScripterLabel::playAVI( const char *filename, bool click_flag )
 
     AVIWrapper *avi = new AVIWrapper();
     if ( avi->init( absolute_filename, false ) == 0 &&
+#if SDL_VERSION_ATLEAST(2,0,0)
+         avi->initAV( renderer, audio_open_flag ) == 0 ){
+#else
          avi->initAV( screen_surface, audio_open_flag ) == 0 ){
+#endif
         if (avi->play( click_flag )) return 1;
     }
     delete avi;
@@ -931,10 +980,15 @@ void ONScripterLabel::stopMovie(SMPEG *mpeg)
     movie_buffer = NULL;
     if (surround_rects) delete[] surround_rects;
     surround_rects = NULL;
+#if SDL_VERSION_ATLEAST(2,0,0)
+    if (movie_texture) SDL_DestroyTexture( movie_texture );
+    movie_texture = NULL;
+#endif
 }
 
 void ONScripterLabel::stopBGM( bool continue_flag )
 {
+#if !SDL_VERSION_ATLEAST(2,0,0)
     if ( cdaudio_flag && cdrom_info ){
         extern SDL_TimerID timer_cdaudio_id;
 
@@ -942,6 +996,7 @@ void ONScripterLabel::stopBGM( bool continue_flag )
         if (SDL_CDStatus( cdrom_info ) >= CD_PLAYING )
             SDL_CDStop( cdrom_info );
     }
+#endif
 
     if ( mp3_sample ){
         SMPEG_stop( mp3_sample );
@@ -1213,3 +1268,15 @@ int ONScripterLabel::closeOggVorbis(OVInfo *ovi)
 
     return 0;
 }
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+void ONScripterLabel::displayCallback(void *data, SMPEG_Frame *frame)
+{
+    ONScripterLabel *that = ((ONScripterLabel *)data);
+    SDL_UpdateTexture(that->movie_texture, NULL, frame->image, frame->image_width);
+    SDL_RenderClear(that->renderer);
+    SDL_RenderCopy(that->renderer, that->movie_texture, NULL,
+        that->async_movie ? &that->async_movie_rect : &that->movie_rect);
+    SDL_RenderPresent(that->renderer);
+}
+#endif

@@ -59,7 +59,12 @@
 
 #define DEFAULT_VIDEO_SURFACE_FLAG (SDL_SWSURFACE)
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#define DEFAULT_BLIT_FLAG SDL_BLENDMODE_NONE
+#define SDL_SetAlpha(a, b, c)  SDL_SetSurfaceBlendMode(a, b) | SDL_SetSurfaceAlphaMod(a, c)
+#else
 #define DEFAULT_BLIT_FLAG (0)
+#endif
 //#define DEFAULT_BLIT_FLAG (SDL_RLEACCEL)
 
 #define MAX_SPRITE_NUM 1000
@@ -99,7 +104,13 @@
 
 #define NUM_GLYPH_CACHE 30
 
-#define KEYPRESS_NULL ((SDLKey)(SDLK_LAST+1)) // "null" for keypress variables
+// "null" for keypress variables
+#if SDL_VERSION_ATLEAST(2,0,0)
+typedef SDL_Keycode SDLKey;
+#define KEYPRESS_NULL SDL_NUM_SCANCODES
+#else
+#define KEYPRESS_NULL ((SDLKey)(SDLK_LAST+1))
+#endif
 
 class ONScripterLabel : public ScriptParser
 {
@@ -429,13 +440,20 @@ protected:
     bool file_exists(const char *fileName);
     char* create_filepath(DirPaths archive_path, const char* filename);
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_Keysym transKey(SDL_Keysym key, bool isdown);
+#else
     SDL_keysym transKey(SDL_keysym key, bool isdown);
+#endif
     void variableEditMode( SDL_KeyboardEvent *event );
     bool keyDownEvent( SDL_KeyboardEvent *event );
     void keyUpEvent( SDL_KeyboardEvent *event );
     bool keyPressEvent( SDL_KeyboardEvent *event );
     bool mousePressEvent( SDL_MouseButtonEvent *event );
     bool mouseMoveEvent( SDL_MouseMotionEvent *event );
+#if SDL_VERSION_ATLEAST(2,0,0)
+    bool mouseWheelEvent( SDL_MouseWheelEvent *event );
+#endif
     void animEvent();
     void timerEvent();
     void flushEventSub( SDL_Event &event );
@@ -591,6 +609,11 @@ private:
     int display_mode;
     bool did_leavetext;
     int event_mode;
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_Window  *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *screen_texture;
+#endif
     SDL_Surface *accumulation_surface; // Final image, i.e. picture_surface (+ text_window + text_surface)
     SDL_Surface *backup_surface; // Final image w/o (text_window + text_surface) used in leaveTextDisplayMode()
     SDL_Surface *screen_surface; // Text + Select_image + Tachi image + background
@@ -989,7 +1012,9 @@ private:
     char *seqmusic_file_name;
     Mix_Music *seqmusic_info;
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
     SDL_CD *cdrom_info;
+#endif
     int current_cd_track;
     bool cd_play_loop_flag;
     bool music_play_loop_flag;
@@ -1041,6 +1066,10 @@ private:
     SDL_Surface *async_movie_surface;
     SDL_Rect async_movie_rect;
     SDL_Rect *surround_rects;
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_Texture *movie_texture;
+    SDL_Rect movie_rect;
+#endif
     bool movie_click_flag, movie_loop_flag;
     int playMPEG( const char *filename, bool async_flag, bool use_pos=false, int xpos=0, int ypos=0, int width=0, int height=0 );
     int playAVI( const char *filename, bool click_flag );
@@ -1156,6 +1185,10 @@ private:
     bool executeSystemYesNo( int caller, int file_no=0 );
     void setupLookbackButton();
     void executeSystemLookback();
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+    static void displayCallback(void *data, SMPEG_Frame *frame);
+#endif
 };
 
 #endif // __ONSCRIPTER_LABEL_H__

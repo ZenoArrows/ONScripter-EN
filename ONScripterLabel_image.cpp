@@ -54,9 +54,14 @@ SDL_Surface *ONScripterLabel::loadImage( char *filename, bool *has_alpha )
 
     if ( has_alpha ){
         *has_alpha = (tmp->format->Amask != 0);
+#if SDL_VERSION_ATLEAST(2,0,0)
+        if (!(*has_alpha) && SDL_HasColorKey(tmp)){
+            has_colorkey = SDL_GetColorKey(tmp, &colorkey) == 0;
+#else
         if (!(*has_alpha) && (tmp->flags & SDL_SRCCOLORKEY)){
             has_colorkey = true;
             colorkey = tmp->format->colorkey;
+#endif
             if (tmp->format->palette){
                 //palette will be converted to RGBA, so don't do colorkey check
                 has_colorkey = false;

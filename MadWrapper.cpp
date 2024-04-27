@@ -87,7 +87,11 @@ MAD_WRAPPER* MAD_WRAPPER_new( const char *file, void* info, int sdl_audio )
     return init( src );
 }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+MAD_WRAPPER* MAD_WRAPPER_new_rwops( SDL_RWops *src, void* info, int freesrc, int sdl_audio )
+#else
 MAD_WRAPPER* MAD_WRAPPER_new_rwops( SDL_RWops *src, void* info, int sdl_audio )
+#endif
 {
     return init( src );
 }

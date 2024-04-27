@@ -114,7 +114,11 @@ void ONScripterLabel::leaveSystemCall( bool restore_flag )
         event_mode = shelter_event_mode;
         draw_cursor_flag = shelter_draw_cursor_flag;
         if ( event_mode & WAIT_BUTTON_MODE ){
+#if SDL_VERSION_ATLEAST(2,0,0)
+            SDL_WarpMouseInWindow( window, shelter_mouse_state.x, shelter_mouse_state.y );
+#else
             SDL_WarpMouse( shelter_mouse_state.x, shelter_mouse_state.y );
+#endif
         }
     }
     display_mode = shelter_display_mode;

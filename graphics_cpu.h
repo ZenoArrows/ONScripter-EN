@@ -26,8 +26,9 @@
 #define __GRAPHICS_CPU_H__
 
 #include "graphics_common.h"
+#include <SDL.h>
 
-#if defined (USE_X86_GFX) && !defined(MACOSX)
+#if defined (USE_X86_GFX) && !defined(MACOSX) && !SDL_VERSION_ATLEAST(2,0,0)
 #include <cpuid.h>
 #endif
 

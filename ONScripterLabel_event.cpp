@@ -62,6 +62,10 @@
 #define EDIT_SELECT_STRING "Music vol (m)  SE vol (s)  Voice vol (v)  Numeric variable (n)  Exit (Esc)"
 #define EDIT_VOLUME_STRING "Music vol (m)  SE vol (s)  Voice vol (v)  Exit (Esc)"
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#define SDL_ALLEVENTS SDL_FIRSTEVENT, SDL_LASTEVENT
+#endif
+
 static SDL_TimerID timer_id = NULL;
 static SDL_TimerID break_id = NULL;
 SDL_TimerID timer_cdaudio_id = NULL;
@@ -223,7 +227,12 @@ extern "C" void waveCallback( int channel )
     SDL_PushEvent(&event);
 }
 
-
+#if SDL_VERSION_ATLEAST(2,0,0)
+SDL_Keysym ONScripterLabel::transKey(SDL_Keysym key, bool isdown)
+{
+    return key;
+}
+#else
 /* **************************************** *
  * OS Dependent Input Translation
  * **************************************** */
@@ -277,6 +286,7 @@ SDL_keysym ONScripterLabel::transKey(SDL_keysym key, bool isdown)
 
     return key;
 }
+#endif
 
 SDLKey transJoystickButton(Uint8 button)
 {
@@ -716,7 +726,7 @@ bool ONScripterLabel::mousePressEvent( SDL_MouseButtonEvent *event )
         if ( event->type == SDL_MOUSEBUTTONDOWN )
             current_button_state.down_flag = true;
     }
-#if SDL_VERSION_ATLEAST(1, 2, 5)
+#if SDL_VERSION_ATLEAST(1, 2, 5) && !SDL_VERSION_ATLEAST(2, 0, 0)
     else if ((event->button == SDL_BUTTON_WHEELUP) &&
              ((event_mode & WAIT_TEXT_MODE) ||
               (usewheel_flag && (event_mode & WAIT_BUTTON_MODE)) ||
@@ -748,6 +758,60 @@ bool ONScripterLabel::mousePressEvent( SDL_MouseButtonEvent *event )
     } else
         return false;
 }
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+bool ONScripterLabel::mouseWheelEvent( SDL_MouseWheelEvent *event )
+// returns true if should break out of the event loop
+{
+    if ( variable_edit_mode ) return false;
+
+    if (event_mode & WAIT_BUTTON_MODE)
+        last_keypress = KEYPRESS_NULL;
+
+    current_button_state.reset();
+    SDL_GetMouseState(&current_button_state.x, &current_button_state.y);
+    current_button_state.down_flag = false;
+    if (getskipoff_flag && (skip_mode & SKIP_NORMAL) &&
+        (event_mode & WAIT_BUTTON_MODE)){
+        skip_mode &= ~SKIP_NORMAL;
+        current_button_state.set(-60);
+        volatile_button_state.set(-60);
+        return true;
+    }
+
+    skip_mode &= ~SKIP_NORMAL;
+
+    if ( (event->y > 0) &&
+         ((event_mode & WAIT_TEXT_MODE) ||
+          (usewheel_flag && (event_mode & WAIT_BUTTON_MODE)) ||
+          (system_menu_mode == SYSTEM_LOOKBACK)) ){
+        current_button_state.set(-2);
+        if (event_mode & WAIT_TEXT_MODE) system_menu_mode = SYSTEM_LOOKBACK;
+    }
+    else if ( (event->y < 0) &&
+              ((enable_wheeldown_advance_flag && (event_mode & WAIT_TEXT_MODE)) ||
+               (usewheel_flag && (event_mode & WAIT_BUTTON_MODE)) ||
+               (system_menu_mode == SYSTEM_LOOKBACK) ) ){
+        if (event_mode & WAIT_TEXT_MODE){
+            current_button_state.set(0);
+        }
+        else{
+            current_button_state.set(-3);
+        }
+    }
+    else return false;
+
+    if (current_button_state.valid_flag)
+        volatile_button_state.set(current_button_state.button);
+
+    if (event_mode & (WAIT_INPUT_MODE | WAIT_BUTTON_MODE)){
+        if (system_menu_mode == SYSTEM_NULL) playClickVoice();
+        stopCursorAnimation( clickstr_state );
+        return true;
+    } else
+        return false;
+}
+#endif
 
 void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
 {
@@ -789,6 +853,18 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
         variable_edit_num = 0;
         break;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+      case SDLK_9: case SDLK_KP_9: variable_edit_num = variable_edit_num * 10 + 9; break;
+      case SDLK_8: case SDLK_KP_8: variable_edit_num = variable_edit_num * 10 + 8; break;
+      case SDLK_7: case SDLK_KP_7: variable_edit_num = variable_edit_num * 10 + 7; break;
+      case SDLK_6: case SDLK_KP_6: variable_edit_num = variable_edit_num * 10 + 6; break;
+      case SDLK_5: case SDLK_KP_5: variable_edit_num = variable_edit_num * 10 + 5; break;
+      case SDLK_4: case SDLK_KP_4: variable_edit_num = variable_edit_num * 10 + 4; break;
+      case SDLK_3: case SDLK_KP_3: variable_edit_num = variable_edit_num * 10 + 3; break;
+      case SDLK_2: case SDLK_KP_2: variable_edit_num = variable_edit_num * 10 + 2; break;
+      case SDLK_1: case SDLK_KP_1: variable_edit_num = variable_edit_num * 10 + 1; break;
+      case SDLK_0: case SDLK_KP_0: variable_edit_num = variable_edit_num * 10 + 0; break;
+#else
       case SDLK_9: case SDLK_KP9: variable_edit_num = variable_edit_num * 10 + 9; break;
       case SDLK_8: case SDLK_KP8: variable_edit_num = variable_edit_num * 10 + 8; break;
       case SDLK_7: case SDLK_KP7: variable_edit_num = variable_edit_num * 10 + 7; break;
@@ -799,6 +875,7 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
       case SDLK_2: case SDLK_KP2: variable_edit_num = variable_edit_num * 10 + 2; break;
       case SDLK_1: case SDLK_KP1: variable_edit_num = variable_edit_num * 10 + 1; break;
       case SDLK_0: case SDLK_KP0: variable_edit_num = variable_edit_num * 10 + 0; break;
+#endif
 
       case SDLK_MINUS: case SDLK_KP_MINUS:
         if ( (variable_edit_mode == EDIT_VARIABLE_NUM_MODE) &&
@@ -866,9 +943,15 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
         if ( (variable_edit_mode == EDIT_SELECT_MODE) ||
              (variable_edit_mode == EDIT_VOLUME_MODE) ){
             variable_edit_mode = NOT_EDIT_MODE;
+#if SDL_VERSION_ATLEAST(2,0,0)
+            SDL_SetWindowTitle( window, DEFAULT_WM_TITLE );
+            SDL_Delay( 100 );
+            SDL_SetWindowTitle( window, wm_title_string );
+#else
             SDL_WM_SetCaption( DEFAULT_WM_TITLE, DEFAULT_WM_ICON );
             SDL_Delay( 100 );
             SDL_WM_SetCaption( wm_title_string, wm_icon_string );
+#endif
             return;
         }
         if (edit_flag)
@@ -914,7 +997,11 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
                  EDIT_MODE_PREFIX, var_name, p, (variable_edit_sign==1)?"":"-", variable_edit_num );
     }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_SetWindowTitle( window, wm_edit_string );
+#else
     SDL_WM_SetCaption( wm_edit_string, wm_icon_string );
+#endif
 }
 
 void ONScripterLabel::shiftCursorOnButton( int diff )
@@ -965,7 +1052,11 @@ void ONScripterLabel::shiftCursorOnButton( int diff )
             x += clip.x;
             y += clip.y;
         }
+#if SDL_VERSION_ATLEAST(2,0,0)
+        SDL_WarpMouseInWindow(window, x, y);
+#else
         SDL_WarpMouse(x, y);
+#endif
     }
 }
 
@@ -1091,7 +1182,11 @@ bool ONScripterLabel::keyPressEvent( SDL_KeyboardEvent *event )
             variable_edit_sign = 1;
             variable_edit_num = 0;
             sprintf( wm_edit_string, "%s%s", EDIT_MODE_PREFIX, EDIT_VOLUME_STRING );
+#if SDL_VERSION_ATLEAST(2,0,0)
+            SDL_SetWindowTitle( window, wm_edit_string );
+#else
             SDL_WM_SetCaption( wm_edit_string, wm_icon_string );
+#endif
         }
 
         //'z' is for entering Edit Mode (if enabled)
@@ -1102,7 +1197,11 @@ bool ONScripterLabel::keyPressEvent( SDL_KeyboardEvent *event )
             variable_edit_sign = 1;
             variable_edit_num = 0;
             sprintf( wm_edit_string, "%s%s", EDIT_MODE_PREFIX, EDIT_SELECT_STRING );
+#if SDL_VERSION_ATLEAST(2,0,0)
+            SDL_SetWindowTitle( window, wm_edit_string );
+#else
             SDL_WM_SetCaption( wm_edit_string, wm_icon_string );
+#endif
         }
     }
 
@@ -1418,7 +1517,14 @@ bool ONScripterLabel::keyPressEvent( SDL_KeyboardEvent *event )
         key_pressed_flag = true;
     }
 
-#if defined(WIN32) && defined(USE_MESSAGEBOX)
+#if SDL_VERSION_ATLEAST(2,0,0)
+    if ((event->keysym.sym == SDLK_F1) && (version_str != NULL)){
+        //F1 is for Help (on Windows), so show the About dialog box
+        menu_windowCommand();
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "About", version_str, window);
+        key_pressed_flag = true;
+    }
+#elif defined(WIN32) && defined(USE_MESSAGEBOX)
     if ((event->keysym.sym == SDLK_F1) && (version_str != NULL)){
         //F1 is for Help (on Windows), so show the About dialog box
         menu_windowCommand();
@@ -1497,6 +1603,15 @@ void ONScripterLabel::runEventLoop()
                 clearTimer(break_id);
             }
             break;
+#if SDL_VERSION_ATLEAST(2,0,0)
+          case SDL_MOUSEWHEEL:
+            ret = mouseWheelEvent( (SDL_MouseWheelEvent*)&event );
+            if (ret) return;
+            if (!(event_mode & WAIT_TEXTOUT_MODE) && had_automode && !automode_flag){
+                clearTimer(break_id);
+            }
+            break;
+#endif
 
           case SDL_JOYBUTTONDOWN:
             event.key.type = SDL_KEYDOWN;
@@ -1606,11 +1721,13 @@ void ONScripterLabel::runEventLoop()
             }
             return;
 
+#if !SDL_VERSION_ATLEAST(2,0,0)
           case SDL_ACTIVEEVENT:
             if ( !event.active.gain ) break;
           case SDL_VIDEOEXPOSE:
               SDL_UpdateRect( screen_surface, 0, 0, screen_width, screen_height );
               break;
+#endif
 
           case SDL_QUIT:
             endCommand();

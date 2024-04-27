@@ -39,7 +39,13 @@
 
 AVIWrapper::AVIWrapper()
 {
+#if SDL_VERSION_ATLEAST(2,0,0)
+    window = NULL;
+    renderer = NULL;
+    texture = NULL;
+#else
     screen_overlay = NULL;
+#endif
     i_avi = NULL;
     v_stream = NULL;
     a_stream = NULL;
@@ -54,7 +60,12 @@ AVIWrapper::~AVIWrapper()
     if ( a_stream )
         a_stream->StopStreaming();
     if ( i_avi ) delete i_avi;
+#if SDL_VERSION_ATLEAST(2,0,0)
+    if ( texture ) SDL_FreeTexture( texture );
+    if ( renderer ) SDL_DestroyRenderer( renderer );
+#else
     if ( screen_overlay ) SDL_FreeYUVOverlay( screen_overlay );
+#endif
     if ( remaining_buffer ) delete[] remaining_buffer;
 }
 
@@ -86,11 +97,16 @@ int AVIWrapper::init( char *filename, bool debug_flag )
     return 0;
 }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+int AVIWrapper::initAV( SDL_Renderer *screen, bool audio_open_flag )
+{
+#else
 int AVIWrapper::initAV( SDL_Surface *surface, bool audio_open_flag )
 {
     screen_rect.x = screen_rect.y = 0;
     screen_rect.w = surface->w;
     screen_rect.h = surface->h;
+#endif
 
     v_stream->StartStreaming();
     if ( v_stream->GetVideoDecoder() == NULL ){
@@ -100,16 +116,31 @@ int AVIWrapper::initAV( SDL_Surface *surface, bool audio_open_flag )
     avm::IVideoDecoder::CAPS cap = v_stream->GetVideoDecoder()->GetCapabilities();
     if ( debug_flag ) printf("cap %x\n", cap );
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    renderer = screen;
+#endif
     if ( cap & avm::IVideoDecoder::CAP_YV12 ){
         v_stream->GetVideoDecoder()->SetDestFmt( 0, fccYV12 );
+#if SDL_VERSION_ATLEAST(2,0,0)
+        texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, width, height );
+#else
         screen_overlay = SDL_CreateYUVOverlay( width, height, SDL_YV12_OVERLAY, surface );
+#endif
     }
     else if ( cap & avm::IVideoDecoder::CAP_YUY2 ){
         v_stream->GetVideoDecoder()->SetDestFmt( 0, fccYUY2 );
+#if SDL_VERSION_ATLEAST(2,0,0)
+        texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_YUY2, SDL_TEXTUREACCESS_STREAMING, width, height );
+#else
         screen_overlay = SDL_CreateYUVOverlay( width, height, SDL_YUY2_OVERLAY, surface );
+#endif
     }
     else{
+#if SDL_VERSION_ATLEAST(2,0,0)
+        texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, width, height );
+#else
         screen_overlay = SDL_CreateYUVOverlay( width, height, SDL_YV12_OVERLAY, surface );
+#endif
     }
 
     if ( !audio_open_flag ) return 0;
@@ -347,6 +378,19 @@ int AVIWrapper::drawFrame( avm::CImage *image )
 {
     if ( image == NULL ) return -1;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    int pitch = width*3; // BGR
+    if ( comp == IMG_FMT_YUY2 ){
+        pitch = width*2;
+    }
+    else if ( comp == IMG_FMT_YV12 ){ 
+        pitch = width;
+    }
+    SDL_UpdateTexture( texture, NULL, image->Data(), pitch );
+    SDL_RenderClear( renderer );
+    SDL_RenderCopy( renderer, texture, NULL, NULL );
+    SDL_RenderPresent( renderer );
+#else
     unsigned int i, j;
     uint32_t comp = image->GetFmt()->biCompression;
         
@@ -376,6 +420,7 @@ int AVIWrapper::drawFrame( avm::CImage *image )
     }
     SDL_UnlockYUVOverlay( screen_overlay );
     SDL_DisplayYUVOverlay( screen_overlay, &screen_rect );
+#endif
 
     return 0;
 }

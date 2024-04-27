@@ -99,7 +99,14 @@ int ONScripterLabel::yesnoboxCommand()
         //The OS X dialog box routines are crashing when in fullscreen mode,
         //so let's switch to windowed mode just in case
         menu_windowCommand();
-#if defined(MACOSX)
+#if SDL_VERSION_ATLEAST(2,0,0)
+        SDL_MessageBoxButtonData buttons[2] = {
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, is_yesnobox ? "Yes" : "OK" },
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, is_yesnobox ? "No" : "Cancel" }
+        };
+        SDL_MessageBoxData msgbox = { 0, window, title, msg, 2, buttons, NULL };
+        SDL_ShowMessageBox(&msgbox, &res);
+#elif defined(MACOSX)
         bool selectedYes;
         if(is_yesnobox) {
             selectedYes = ONSCocoa::choicebox(title, msg, "Yes", "No", ONSCocoa::ENC_SJIS);
@@ -1902,7 +1909,11 @@ int ONScripterLabel::movemousecursorCommand()
     int x = StretchPosX(script_h.readInt());
     int y = StretchPosY(script_h.readInt());
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_WarpMouseInWindow( window, x, y );
+#else
     SDL_WarpMouse( x, y );
+#endif
 
     return RET_CONTINUE;
 }
@@ -1945,7 +1956,11 @@ int ONScripterLabel::monocroCommand()
 int ONScripterLabel::minimizewindowCommand()
 {
 #ifndef PSP
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_MinimizeWindow( window );
+#else
     SDL_WM_IconifyWindow();
+#endif
 #endif
 
     return RET_CONTINUE;
@@ -1957,7 +1972,10 @@ int ONScripterLabel::mesboxCommand()
     char *msg = new char[strlen(buf)+1];
     sprintf(msg,"%s",buf);
     const char *title = script_h.readStr();
-#if defined(MACOSX)
+#if SDL_VERSION_ATLEAST(2,0,0)
+    menu_windowCommand();
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title, msg, window);
+#elif defined(MACOSX)
     //The OS X dialog box routines are crashing when in fullscreen mode,
     //so let's switch to windowed mode just in case
     menu_windowCommand();
@@ -1981,6 +1999,9 @@ int ONScripterLabel::menu_windowCommand()
 {
     if ( fullscreen_mode ){
 #ifndef PSP
+#if SDL_VERSION_ATLEAST(2,0,0)
+        SDL_SetWindowFullscreen( window, 0 );
+#else
         if (async_movie) SMPEG_pause( async_movie );
         screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
         SDL_Rect rect = {0, 0, screen_width, screen_height};
@@ -1989,6 +2010,7 @@ int ONScripterLabel::menu_windowCommand()
             SMPEG_setdisplay( async_movie, screen_surface, NULL, NULL );
             SMPEG_play( async_movie );
         }
+#endif
 #endif
         fullscreen_mode = false;
     }
@@ -2016,6 +2038,9 @@ int ONScripterLabel::menu_fullCommand()
 {
     if ( !fullscreen_mode ){
 #ifndef PSP
+#if SDL_VERSION_ATLEAST(2,0,0)
+        fullscreen_mode = SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN ) == 0;
+#else
         if (async_movie) SMPEG_pause( async_movie );
         screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG|SDL_FULLSCREEN );
         if (screen_surface)
@@ -2031,6 +2056,7 @@ int ONScripterLabel::menu_fullCommand()
             SMPEG_setdisplay( async_movie, screen_surface, NULL, NULL );
             SMPEG_play( async_movie );
         }
+#endif
 #else
         fullscreen_mode = true;
 #endif
@@ -4099,6 +4125,9 @@ int ONScripterLabel::captionCommand()
     setStr( &wm_icon_string,  buf2 );
     delete[] buf2;
     //printf("caption (utf8): '%s'\n", wm_title_string);
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_SetWindowTitle( window, wm_title_string );
+#else
     SDL_WM_SetCaption( wm_title_string, wm_icon_string );
 #ifdef WIN32
     //convert from UTF-8 to Wide (Unicode) and thence to system ANSI
@@ -4117,6 +4146,7 @@ int ONScripterLabel::captionCommand()
     SendMessageA(info.window, WM_SETTEXT, 0, (LPARAM)cvt);
     delete[] cvt;
 #endif //WIN32
+#endif
 
     return RET_CONTINUE;
 }
@@ -4418,7 +4448,16 @@ int ONScripterLabel::bltCommand()
         SDL_Rect dst_rect = {dx,dy,dw,dh};
 
         SDL_BlitSurface( btndef_info.image_surface, &src_rect, screen_surface, &dst_rect );
+#if SDL_VERSION_ATLEAST(2,0,0)
+        SDL_LockSurface( screen_surface );
+        SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
+        SDL_UnlockSurface( screen_surface );
+        SDL_RenderClear( renderer );
+        SDL_RenderCopy( renderer, screen_texture, NULL, NULL );
+        SDL_RenderPresent( renderer );
+#else
         SDL_UpdateRect( screen_surface, dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h );
+#endif
         dirty_rect.clear();
     }
     else{

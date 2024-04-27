@@ -40,7 +40,11 @@ public:
     ~AVIWrapper();
 
     int init( char *filename, bool debug_flag );
+#if SDL_VERSION_ATLEAST(2,0,0)
+    int initAV( SDL_Renderer *screen, bool audio_open_flag );
+#else
     int initAV( SDL_Surface *surface, bool audio_open_flag );
+#endif
     int play( bool click_flag );
 
     void audioCallback( void *userdata, Uint8 *stream, int len );
@@ -53,8 +57,13 @@ private:
     double getAudioTime();
     int drawFrame( avm::CImage *image );
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+#else
     SDL_Overlay *screen_overlay;
     SDL_Rect screen_rect;
+#endif
     unsigned int width;
     unsigned int height;
 
