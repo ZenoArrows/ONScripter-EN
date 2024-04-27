@@ -1890,25 +1890,35 @@ void ONScripterLabel::flushDirect( SDL_Rect &rect, int refresh_mode, bool update
                 SDL_BlitSurface( accumulation_surface, &tmp_rects[i], screen_surface, &tmp_rects[i] );
             }
         }
-#if !SDL_VERSION_ATLEAST(2,0,0)
+#if SDL_VERSION_ATLEAST(2,0,0)
+        if (updaterect) {
+            SDL_LockSurface( screen_surface );
+            SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
+            SDL_UnlockSurface( screen_surface );
+            SDL_RenderClear( renderer );
+            for (int i = 0; i < 4; ++i)
+                SDL_RenderCopy( renderer, screen_texture, &surround_rects[i], &surround_rects[i] );
+            SDL_RenderPresent( renderer );
+        }
+#else
         if (updaterect) SDL_UpdateRects( screen_surface, 4, tmp_rects );
 #endif
     } else { 
         refreshSurface( accumulation_surface, &rect, refresh_mode );
         SDL_BlitSurface( accumulation_surface, &rect, screen_surface, &rect );
-#if !SDL_VERSION_ATLEAST(2,0,0)
+#if SDL_VERSION_ATLEAST(2,0,0)
+        if (updaterect) {
+            SDL_LockSurface( screen_surface );
+            SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
+            SDL_UnlockSurface( screen_surface );
+            SDL_RenderClear( renderer );
+            SDL_RenderCopy( renderer, screen_texture, NULL, NULL );
+            SDL_RenderPresent( renderer );
+        }
+#else
         if (updaterect) SDL_UpdateRect( screen_surface, rect.x, rect.y, rect.w, rect.h );
 #endif
     }
-
-#if SDL_VERSION_ATLEAST(2,0,0)
-    SDL_LockSurface( screen_surface );
-    SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
-    SDL_UnlockSurface( screen_surface );
-    SDL_RenderClear( renderer );
-    SDL_RenderCopy( renderer, screen_texture, NULL, NULL );
-    SDL_RenderPresent( renderer );
-#endif
 }
 
 void ONScripterLabel::mouseOverCheck( int x, int y )
