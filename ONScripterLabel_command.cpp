@@ -4454,9 +4454,10 @@ int ONScripterLabel::bltCommand()
 
         SDL_BlitSurface( btndef_info.image_surface, &src_rect, screen_surface, &dst_rect );
 #if SDL_VERSION_ATLEAST(2,0,0)
-        SDL_LockSurface( screen_surface );
-        SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
-        SDL_UnlockSurface( screen_surface );
+        SDL_Surface *rect_surface;
+        SDL_LockTextureToSurface( screen_texture, &dst_rect, &rect_surface );
+        SDL_BlitSurface( screen_surface, &dst_rect, rect_surface, NULL );
+        SDL_UnlockTexture( screen_texture );
         SDL_RenderClear( renderer );
         SDL_RenderCopy( renderer, screen_texture, NULL, NULL );
         SDL_RenderPresent( renderer );

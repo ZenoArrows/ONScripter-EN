@@ -1892,11 +1892,12 @@ void ONScripterLabel::flushDirect( SDL_Rect &rect, int refresh_mode, bool update
         }
 #if SDL_VERSION_ATLEAST(2,0,0)
         if (updaterect) {
-            SDL_LockSurface( screen_surface );
-            SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
-            SDL_UnlockSurface( screen_surface );
+            SDL_Surface *rect_surface;
+            SDL_LockTextureToSurface( screen_texture, &rect, &rect_surface );
+            SDL_BlitSurface( screen_surface, &rect, rect_surface, NULL );
+            SDL_UnlockTexture( screen_texture );
             SDL_RenderClear( renderer );
-            for (int i = 0; i < 4; ++i)
+            for (int i=0; i<4; ++i)
                 SDL_RenderCopy( renderer, screen_texture, &surround_rects[i], &surround_rects[i] );
             SDL_RenderPresent( renderer );
         }
@@ -1908,9 +1909,10 @@ void ONScripterLabel::flushDirect( SDL_Rect &rect, int refresh_mode, bool update
         SDL_BlitSurface( accumulation_surface, &rect, screen_surface, &rect );
 #if SDL_VERSION_ATLEAST(2,0,0)
         if (updaterect) {
-            SDL_LockSurface( screen_surface );
-            SDL_UpdateTexture( screen_texture, NULL, screen_surface->pixels, screen_surface->pitch );
-            SDL_UnlockSurface( screen_surface );
+            SDL_Surface *rect_surface;
+            SDL_LockTextureToSurface( screen_texture, &rect, &rect_surface );
+            SDL_BlitSurface( screen_surface, &rect, rect_surface, NULL );
+            SDL_UnlockTexture( screen_texture );
             SDL_RenderClear( renderer );
             SDL_RenderCopy( renderer, screen_texture, NULL, NULL );
             SDL_RenderPresent( renderer );
