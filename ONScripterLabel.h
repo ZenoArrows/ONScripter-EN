@@ -147,6 +147,10 @@ public:
 #endif
     void setScaled();
     void setNoMovieUpscale();
+    void setWaifu2xMode(const char *mode);
+    void setWaifu2xNoiseLevel(int noise_level);
+    void setWaifu2xModel(const char *model_dir);
+    void setWaifu2xProcess(const char *process);
     inline void setStrict() { script_h.strict_warnings = true; }
     void setGameIdentifier(const char *gameid);
     enum {
@@ -493,6 +497,10 @@ private:
 #endif
     bool scaled_flag;
     bool nomovieupscale_flag;
+    char *w2x_mode;
+    int  w2x_noise;
+    char *w2x_model;
+    char *w2x_process;
 
     //Mion: inlines for image/screen resizing & scaling
     int ExpandPos(int val);

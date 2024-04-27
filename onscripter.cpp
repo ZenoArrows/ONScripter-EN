@@ -317,6 +317,26 @@ static void parseOptions(int argc, char **argv, ONScripterLabel &ons, bool &hasA
             else if ( !strcmp( argv[0]+1, "-force-png-nscmask" ) ){
                 ons.setMaskType( ONScripterLabel::PNG_MASK_USE_NSCRIPTER );
             }
+            else if ( !strcmp( argv[0]+1, "-waifu2x-mode" ) ){
+                argc--;
+                argv++;
+                ons.setWaifu2xMode(argv[0]);
+            }
+            else if ( !strcmp( argv[0]+1, "-waifu2x-noise-level" ) ){
+                argc--;
+                argv++;
+                ons.setWaifu2xNoiseLevel(atoi(argv[0]));
+            }
+            else if ( !strcmp( argv[0]+1, "-waifu2x-model-dir" ) ){
+                argc--;
+                argv++;
+                ons.setWaifu2xModel(argv[0]);
+            }
+            else if ( !strcmp( argv[0]+1, "-waifu2x-process" ) ){
+                argc--;
+                argv++;
+                ons.setWaifu2xProcess(argv[0]);
+            }
             else{
                 char errstr[256];
                 snprintf(errstr, 256, "unknown option %s", argv[0]);
@@ -438,6 +458,9 @@ int main( int argc, char **argv )
 #ifdef MACOSX
     //Check for application bundle on Mac OS X
     ons.checkBundled();
+#endif
+
+#ifdef WIN32
 #endif
 
     // ----------------------------------------

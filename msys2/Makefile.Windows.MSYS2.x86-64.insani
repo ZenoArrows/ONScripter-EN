@@ -114,7 +114,7 @@ include Makefile.onscripter
 libtoolreplace:
 	@cp $(ES)/required/freetype-config $(EB)
 
-clean: pclean $(CLEAN_TARGETS) libtoolreplace
+clean: pclean $(CLEAN_TARGETS)
 distclean: clean pdistclean $(DISTCLEAN_TARGETS)
 	rm -r -f extlib/bin extlib/lib extlib/include \
 	         extlib/share extlib/man

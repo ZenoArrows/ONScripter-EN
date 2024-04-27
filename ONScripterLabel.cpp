@@ -41,6 +41,7 @@
 #include "ONScripterLabel.h"
 #include "graphics_cpu.h"
 #include "graphics_resize.h"
+#include "resize_image.h"
 #include <cstdio>
 #include <fstream>
 
@@ -691,6 +692,10 @@ ONScripterLabel::ONScripterLabel()
 #endif
     scaled_flag = false;
     nomovieupscale_flag = false;
+    w2x_mode = "scale";
+    w2x_noise = -1;
+    w2x_model = "models/cunet";
+    w2x_process = "cudnn";
     window_mode = false;
     use_app_icons = false;
     cdrom_drive_number = 0;
@@ -994,6 +999,26 @@ void ONScripterLabel::setNoMovieUpscale()
     nomovieupscale_flag = true;
 }
 
+void ONScripterLabel::setWaifu2xMode(const char *mode)
+{
+    setStr(&w2x_mode, mode);
+}
+
+void ONScripterLabel::setWaifu2xNoiseLevel(int noise_level)
+{
+    w2x_noise = noise_level;
+}
+
+void ONScripterLabel::setWaifu2xModel(const char *model_dir)
+{
+    setStr(&w2x_model, model_dir);
+}
+
+void ONScripterLabel::setWaifu2xProcess(const char *process)
+{
+    setStr(&w2x_process, process);
+}
+
 void ONScripterLabel::setGameIdentifier(const char *gameid)
 {
     setStr(&cmdline_game_id, gameid);
@@ -1169,6 +1194,7 @@ int ONScripterLabel::init()
     }
 #endif
 
+    initWaifu2x(w2x_mode, w2x_noise, w2x_model, w2x_process);
     initSDL();
 
     image_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, 1, 1, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 );
@@ -2601,6 +2627,7 @@ int ONScripterLabel::refreshMode()
 void ONScripterLabel::quit(bool no_error)
 {
     saveAll(no_error);
+    quitWaifu2x();
 
     if (async_movie) stopMovie(async_movie);
     async_movie = NULL;

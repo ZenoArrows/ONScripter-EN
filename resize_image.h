@@ -24,6 +24,9 @@
 // Modified by Uncle Mion (UncleMion@gmail.com) Nov-Dec 2009,
 //   to account for multicell images during resizing
 
+void initWaifu2x( const char *mode, const int noise_level, const char *model_dir, const char *process );
+void quitWaifu2x();
+
 void resizeImage( unsigned char *dst_buffer, int dst_width, int dst_height, int dst_total_width,
                   unsigned char *src_buffer, int src_width, int src_height, int src_total_width,
                   int byte_per_pixel, unsigned char *tmp_buffer, int tmp_total_width,

@@ -26,6 +26,21 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
+
+#ifdef WIN32
+#include <windows.h>
+#endif
+
+typedef void* (*Waifu2xInitNew)(const char *mode, const int noise_level, const char *model_dir, const char *process);
+typedef bool (*Waifu2xProcessNew)(void *waifu2xObj, double factor, const void* source, void* dest, int width, int height, int in_channel, int in_stride, int out_channel, int out_stride,
+	int output_depth, bool use_tta, int crop_w, int crop_h, int batch_size);
+typedef void (*Waifu2xGlobalDestroy)();
+
+static void* waifu2x=NULL;
+static Waifu2xInitNew w2xInitNew=NULL;
+static Waifu2xProcessNew w2xProcessNew=NULL;
+static Waifu2xGlobalDestroy w2xGlobalDestroy=NULL;
 
 static unsigned long *pixel_accum=NULL;
 static unsigned long *pixel_accum_num=NULL;
@@ -116,6 +131,29 @@ static void calcWeightedSum(unsigned char **dst, int x_start, int x_end,
     }
 }
 
+void initWaifu2x( const char *mode, const int noise_level, const char *model_dir, const char *process )
+{
+#ifdef WIN32
+    if ( !waifu2x )
+    {
+        HMODULE waifu2xdll = LoadLibrary("waifu2x-caffe-dll");
+        if ( waifu2xdll ){
+            w2xInitNew = (Waifu2xInitNew)GetProcAddress(waifu2xdll, "Waifu2xInitNew");
+            w2xProcessNew = (Waifu2xProcessNew)GetProcAddress(waifu2xdll, "Waifu2xProcessNew");
+            w2xGlobalDestroy = (Waifu2xGlobalDestroy)GetProcAddress(waifu2xdll, "Waifu2xGlobalDestroy");
+            waifu2x = w2xInitNew(mode, noise_level, model_dir, process);
+        }
+    }
+#endif
+}
+
+void quitWaifu2x()
+{
+    if ( w2xGlobalDestroy ){
+        w2xGlobalDestroy();
+    }
+}
+
 void resizeImage( unsigned char *dst_buffer, int dst_width, int dst_height, int dst_total_width,
                   unsigned char *src_buffer, int src_width, int src_height, int src_total_width,
                   int byte_per_pixel, unsigned char *tmp_buffer, int tmp_total_width,
@@ -129,6 +167,20 @@ void resizeImage( unsigned char *dst_buffer, int dst_width, int dst_height, int 
     int i, j, s, c;
 
     int mx=0, my=0;
+
+    if ( waifu2x ){
+        int src_cell_width = src_width / num_cells;
+        int dst_cell_width = dst_width / num_cells;
+        int crop_width = std::min( std::max( src_cell_width + 1, 64 ), 320 ) & ~1;
+        int crop_height = std::min( std::max( src_height + 1, 64 ), 240 ) & ~1;
+        for ( int c=0 ; c<num_cells ; c++ ){
+            w2xProcessNew( waifu2x, (double)dst_cell_width / src_cell_width,
+                           src_buffer + src_cell_width * c * 4, dst_buffer + dst_cell_width * c * 4,
+                           src_cell_width, src_height, 4, src_width * 4, 4, dst_width * 4,
+                           8, false, crop_width, crop_height, 4 );
+        }
+        return;
+    }
 
     if ( src_width  > 1 ) mx = byte_per_pixel;
     if ( src_height > 1 ) my = tmp_total_width;
