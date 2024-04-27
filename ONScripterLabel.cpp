@@ -1089,6 +1089,8 @@ void ONScripterLabel::setGameIdentifier(const char *gameid)
 
 bool ONScripterLabel::file_exists(const char *fileName)
 {
+    if (!fileName)
+        return false;
     std::ifstream infile(fileName);
     return infile.good();
 }

@@ -2,6 +2,11 @@
 *.lo
 *.a
 *.la
+*.exe
+*.rc
 /resources.cpp
 /embed
 /onscripter-en
+/models
+/out
+/.vs

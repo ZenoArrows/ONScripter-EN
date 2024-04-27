@@ -32,7 +32,9 @@
 
 #include "DirectReader.h"
 #include <bzlib.h>
-#if !defined(WIN32) && !defined(MACOS9) && !defined(PSP) && !defined(__OS2__)
+#if defined(WIN32)
+#include <Windows.h>
+#elif !defined(MACOS9) && !defined(PSP) && !defined(__OS2__)
 #include <dirent.h>
 #endif
 
