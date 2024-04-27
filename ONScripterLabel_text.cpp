@@ -230,8 +230,14 @@ void ONScripterLabel::drawGlyph( SDL_Surface *dst_surface, Fontinfo *info, SDL_C
         (info->is_bold?TTF_STYLE_BOLD:TTF_STYLE_NORMAL) )
         TTF_SetFontStyle( (TTF_Font*)info->ttf_font, (info->is_bold?TTF_STYLE_BOLD:TTF_STYLE_NORMAL));
 #endif
+#if SDL_VERSION_ATLEAST(2,0,0)
+    minx = maxx = advanced = 0;
+    maxy = TTF_FontAscent((TTF_Font*)info->ttf_font);
+    miny = -maxy;
+#else
     TTF_GlyphMetrics( (TTF_Font*)info->ttf_font, unicode,
                       &minx, &maxx, &miny, &maxy, &advanced );
+#endif
     //printf("min %d %d %d %d %d %d\n", minx, maxx, miny, maxy, advanced,TTF_FontAscent((TTF_Font*)info->ttf_font)  );
 
     SDL_Surface *tmp_surface = renderGlyph( (TTF_Font*)info->ttf_font, unicode );
