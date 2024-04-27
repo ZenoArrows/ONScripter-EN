@@ -68,6 +68,7 @@ int message_main(int mode, char *title, char *message);
 
 extern SDL_TimerID timer_bgmfade_id;
 extern "C" Uint32 SDLCALL bgmfadeCallback( Uint32 interval, void *param );
+extern "C" void waveCallback( int channel );
 
 int ONScripterLabel::yesnoboxCommand()
 {
@@ -160,11 +161,13 @@ int ONScripterLabel::waveCommand()
 
 int ONScripterLabel::wavestopCommand()
 {
+    Mix_ChannelFinished( NULL );
     if ( audio_open_flag && wave_sample[MIX_WAVE_CHANNEL] ){
         Mix_Pause( MIX_WAVE_CHANNEL );
         Mix_FreeChunk( wave_sample[MIX_WAVE_CHANNEL] );
         wave_sample[MIX_WAVE_CHANNEL] = NULL;
     }
+    Mix_ChannelFinished( waveCallback );
     setStr( &wave_file_name, NULL );
 
     return RET_CONTINUE;
@@ -2222,6 +2225,7 @@ int ONScripterLabel::lspCommand()
 
 int ONScripterLabel::loopbgmstopCommand()
 {
+    Mix_ChannelFinished( NULL );
     if ( wave_sample[MIX_LOOPBGM_CHANNEL0] ){
         Mix_Pause(MIX_LOOPBGM_CHANNEL0);
         Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL0] );
@@ -2232,6 +2236,7 @@ int ONScripterLabel::loopbgmstopCommand()
         Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL1] );
         wave_sample[MIX_LOOPBGM_CHANNEL1] = NULL;
     }
+    Mix_ChannelFinished( waveCallback );
     setStr(&loop_bgm_name[0], NULL);
 
     return RET_CONTINUE;

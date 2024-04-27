@@ -77,6 +77,7 @@ extern bool ext_music_play_once_flag;
 extern "C"{
     extern void mp3callback( void *userdata, Uint8 *stream, int len );
     extern void oggcallback( void *userdata, Uint8 *stream, int len );
+    extern void waveCallback( int channel );
     extern Uint32 SDLCALL cdaudioCallback( Uint32 interval, void *param );
     extern Uint32 SDLCALL silentmovieCallback( Uint32 interval, void *param );
 #if defined(MACOSX) //insani
@@ -441,9 +442,11 @@ void ONScripterLabel::playCDAudio()
 
 int ONScripterLabel::playWave(Mix_Chunk *chunk, int format, bool loop_flag, int channel)
 {
+    Mix_ChannelFinished( NULL );
     Mix_Pause( channel );
     if ( wave_sample[channel] ) Mix_FreeChunk( wave_sample[channel] );
     wave_sample[channel] = chunk;
+    Mix_ChannelFinished( waveCallback );
 
     if (!chunk) return -1;
 
@@ -988,6 +991,8 @@ void ONScripterLabel::stopMovie(SMPEG *mpeg)
 
 void ONScripterLabel::stopBGM( bool continue_flag )
 {
+    Mix_ChannelFinished( NULL );
+
 #if !SDL_VERSION_ATLEAST(2,0,0)
     if ( cdaudio_flag && cdrom_info ){
         extern SDL_TimerID timer_cdaudio_id;
@@ -1051,6 +1056,8 @@ void ONScripterLabel::stopBGM( bool continue_flag )
     }
 
     if ( !continue_flag ) current_cd_track = -1;
+
+    Mix_ChannelFinished( waveCallback );
 }
 
 void ONScripterLabel::stopDWAVE( int channel )
@@ -1061,6 +1068,7 @@ void ONScripterLabel::stopDWAVE( int channel )
     if (channel < 0) channel = 0;
     else if (channel >= ONS_MIX_CHANNELS) channel = ONS_MIX_CHANNELS-1;
 
+    Mix_ChannelFinished( NULL );
     if ( wave_sample[channel] ){
         Mix_Pause( channel );
         if ( !channel_preloaded[channel] || channel == 0 ){
@@ -1072,6 +1080,8 @@ void ONScripterLabel::stopDWAVE( int channel )
             channel_preloaded[channel] = false;
         }
     }
+    Mix_ChannelFinished( waveCallback );
+
     if ((channel == 0) && bgmdownmode_flag)
         setCurMusicVolume( music_volume );
 }
@@ -1080,6 +1090,7 @@ void ONScripterLabel::stopAllDWAVE()
 {
     if (!audio_open_flag) return;
 
+    Mix_ChannelFinished( NULL );
     for (int ch=0; ch<ONS_MIX_CHANNELS ; ch++) {
         if ( wave_sample[ch] ){
             Mix_Pause( ch );
@@ -1091,6 +1102,8 @@ void ONScripterLabel::stopAllDWAVE()
             }
         }
     }
+    Mix_ChannelFinished( waveCallback );
+
     // just in case the bgm was turned down for the voice channel,
     // set the bgm volume back to normal
     if (bgmdownmode_flag)
