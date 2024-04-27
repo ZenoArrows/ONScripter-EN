@@ -672,11 +672,23 @@ void ONScripterLabel::openAudio(int freq, Uint16 format, int channels)
         audio_format.freq = freq;
         audio_format.channels = channels;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+        audio_open_flag = SDL_OpenAudio( &audio_format, NULL ) >= 0;
+#else
         audio_open_flag = true;
+#endif
 
         Mix_AllocateChannels( ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS );
         Mix_ChannelFinished( waveCallback );
     }
+}
+
+void ONScripterLabel::closeAudio()
+{
+    Mix_CloseAudio();
+#if SDL_VERSION_ATLEAST(2,0,0)
+    SDL_CloseAudio();
+#endif
 }
 
 int ONScripterLabel::ExpandPos(int val) {

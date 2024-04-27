@@ -1474,7 +1474,7 @@ int ONScripterLabel::resetCommand()
     if ((audio_format.format != MIX_DEFAULT_FORMAT) ||
         (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
         (audio_format.freq != DEFAULT_AUDIO_RATE)) {
-        Mix_CloseAudio();
+        closeAudio();
         openAudio();
     }
     mp3fadeout_duration = fadeout;
@@ -3765,7 +3765,7 @@ int ONScripterLabel::defineresetCommand()
         ( (audio_format.format != MIX_DEFAULT_FORMAT) ||
           (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
           (audio_format.freq != DEFAULT_AUDIO_RATE) )) {
-        Mix_CloseAudio();
+        closeAudio();
         openAudio();
     }
 

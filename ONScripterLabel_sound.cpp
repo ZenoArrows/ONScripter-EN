@@ -479,7 +479,7 @@ int ONScripterLabel::playMP3()
     SMPEG_wantedSpec( mp3_sample, &wanted );
     if (( (wanted.format != audio_format.format) ||
           (wanted.freq != audio_format.freq)) && match_bgm_audio_flag) {
-        Mix_CloseAudio();
+        closeAudio();
         openAudio(wanted.freq, wanted.format, wanted.channels);
         if (!audio_open_flag) {
             // didn't work, use the old settings
@@ -525,7 +525,7 @@ int ONScripterLabel::playOGG(int format, unsigned char *buffer, long length, boo
 
     if ( (audio_format.format != AUDIO_S16) ||
          ((audio_format.freq != rate) && match_bgm_audio_flag) ) {
-        Mix_CloseAudio();
+        closeAudio();
         openAudio(rate, AUDIO_S16, channels);
         ovi->cvt.needed = 0;
         if (!audio_open_flag) {
@@ -739,7 +739,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
                 if ((wanted.format != audio_format.format) ||
                     (wanted.freq != audio_format.freq)) {
                     different_spec = true;
-                    Mix_CloseAudio();
+                    closeAudio();
                     openAudio(wanted.freq, wanted.format, wanted.channels);
                     if (!audio_open_flag) {
                         // didn't work, use the old settings
@@ -916,7 +916,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
 
         if (different_spec) {
             //restart mixer with the old audio spec
-            Mix_CloseAudio();
+            closeAudio();
             openAudio();
         }
     }
@@ -937,7 +937,7 @@ int ONScripterLabel::playAVI( const char *filename, bool click_flag )
              absolute_filename[i] == '\\' )
             absolute_filename[i] = DELIMITER;
 
-    if ( audio_open_flag ) Mix_CloseAudio();
+    if ( audio_open_flag ) closeAudio();
 
     AVIWrapper *avi = new AVIWrapper();
     if ( avi->init( absolute_filename, false ) == 0 &&
@@ -952,7 +952,7 @@ int ONScripterLabel::playAVI( const char *filename, bool click_flag )
     delete[] absolute_filename;
 
     if ( audio_open_flag ){
-        Mix_CloseAudio();
+        closeAudio();
         openAudio();
     }
 #else

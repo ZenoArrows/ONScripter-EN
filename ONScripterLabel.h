@@ -465,6 +465,7 @@ protected:
     void trapHandler();
     void initSDL();
     void openAudio(int freq=DEFAULT_AUDIO_RATE, Uint16 format=MIX_DEFAULT_FORMAT, int channels=MIX_DEFAULT_CHANNELS);
+    void closeAudio();
 
 private:
     enum {
